@@ -12,7 +12,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import json  # Para salvar e carregar dados em formato JSON
 
-st.set_page_config(layout='wide')
+st.set_page_config(page_title="Maturity Reali Consultoria",layout='wide', page_icon="⚖️")
 
 # Mapeamento das respostas de texto para valores numéricos
 mapeamento_respostas = {
