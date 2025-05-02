@@ -90,6 +90,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
 
     remetente = st.secrets["email_config"]["email"]
     senha = st.secrets["email_config"]["password"]
+    porta = 587
 
     # Configurar o email
     msg = MIMEMultipart()
