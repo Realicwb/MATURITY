@@ -86,8 +86,8 @@ def exportar_questionario(respostas, perguntas_hierarquicas):
     return output.getvalue()
 
 def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
-    servidor_smtp = smtplib.SMTP('smtplw.com.br')
-
+    user = st.secrets["email_config"]["user"]
+    servidor_smtp = st.secrets["email_config"]["servidor_smtp"]
     remetente = st.secrets["email_config"]["email"]
     senha = st.secrets["email_config"]["password"]
     porta = 587
@@ -182,7 +182,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
         with smtplib.SMTP(host=servidor_smtp, port=porta, timeout=10) as servidor:
             servidor.set_debuglevel(1)  # Ativa logs detalhados
             servidor.starttls()
-            servidor.login(remetente, senha)
+            servidor.login(user, senha)
             servidor.send_message(msg)
         return True
     except Exception as e:
