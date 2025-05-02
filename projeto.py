@@ -94,7 +94,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
     port = 587  # Porta SMTP
     # Configurar o email
     msg = MIMEMultipart()
-    msg['From'] = remetente
+    msg['From'] = sender
     msg['To'] = destinatario
     msg['Subject'] = "Relatório de Análise"
 
