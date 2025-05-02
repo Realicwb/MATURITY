@@ -86,15 +86,14 @@ def exportar_questionario(respostas, perguntas_hierarquicas):
     return output.getvalue()
 
 def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
+    servidor_smtp = st.secrets["email_config"]["servidor_smtp"]
+    porta = st.secrets["email_config"]["porta"]
+    remetente = st.secrets["email_config"]["email"]
+    senha = st.secrets["email_config"]["password"]
 
-    user = "reali14"  # Substitua pelo usuário do seu arquivo TOML
-    password = "jcvGDksm4107"  # Substitua pela senha do seu arquivo TOML
-    sender = "profile@realiconsultoria.com.br"  # E-mail do remetente
-    server = "smtplw.com.br"  # Servidor SMTP
-    port = 587  # Porta SMTP
     # Configurar o email
     msg = MIMEMultipart()
-    msg['From'] = sender
+    msg['From'] = remetente
     msg['To'] = destinatario
     msg['Subject'] = "Relatório de Análise"
 
@@ -179,11 +178,11 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
 
     # Enviar o email com depuração detalhada
     try:
-        with smtplib.SMTP(server, port) as smtp:
-             smtp.set_debuglevel(1)  # Para depuração
-             smtp.starttls()
-             smtp.login(user, password)
-             smtp.sendmail(sender, destinatario, msg.as_string())
+        with smtplib.SMTP(host=servidor_smtp, port=porta, timeout=10) as servidor:
+            servidor.set_debuglevel(1)  # Ativa logs detalhados
+            servidor.starttls()
+            servidor.login(remetente, senha)
+            servidor.send_message(msg)
         return True
     except Exception as e:
         st.error(f"Erro detalhado: {str(e)}")
