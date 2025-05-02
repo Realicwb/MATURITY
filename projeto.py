@@ -86,8 +86,8 @@ def exportar_questionario(respostas, perguntas_hierarquicas):
     return output.getvalue()
 
 def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
-    servidor_smtp = st.secrets["email_config"]["servidor_smtp"]
-    porta = st.secrets["email_config"]["porta"]
+    servidor_smtp = smtplib.SMTP('smtplw.com.br', 587)
+
     remetente = st.secrets["email_config"]["email"]
     senha = st.secrets["email_config"]["password"]
 
