@@ -14,6 +14,102 @@ import json  # Para salvar e carregar dados em formato JSON
 
 st.set_page_config(page_title="Maturity Reali Consultoria",layout='wide', page_icon="⚖️")
 
+st.markdown("""
+<style>
+    /* Animação para todos os botões */
+    .stButton>button {
+        transition: all 0.3s ease;
+        transform: scale(1);
+    }
+    
+    .stButton>button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* Animação específica para botão de prosseguir */
+    button[kind="primary"] {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        animation: pulse 2s infinite;
+    }
+    
+    button[kind="primary"]:hover {
+        background-color: #45a049;
+        animation: none;
+    }
+    
+    /* Animação de pulsar */
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+    
+    /* Animação para botão de voltar */
+    button[kind="secondary"] {
+        transition: all 0.3s ease;
+    }
+    
+    button[kind="secondary"]:hover {
+        background-color: #f1f1f1;
+        transform: translateX(-5px);
+    }
+    
+    /* Animação para botão de enviar email */
+    button:contains("ENVIAR POR EMAIL") {
+        background-color: #FF5722;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    
+    button:contains("ENVIAR POR EMAIL"):hover {
+        background-color: #E64A19;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    
+    /* Animação para botão de salvar progresso */
+    button:contains("Salvar Progresso") {
+        background-color: #2196F3;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    
+    button:contains("Salvar Progresso"):hover {
+        background-color: #0b7dda;
+        transform: translateY(-3px);
+    }
+    
+    /* Animação para botões de navegação */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] button {
+        transition: all 0.3s ease;
+    }
+    
+    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"] button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Destaque para botão ativo na sidebar */
+    button[aria-pressed="true"] {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        font-weight: bold;
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
 # Mapeamento das respostas de texto para valores numéricos
 mapeamento_respostas = {
     "Selecione": 0,  # Adicionando "Selecione" como valor padrão
