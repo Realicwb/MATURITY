@@ -184,9 +184,9 @@ def exportar_questionario(respostas, perguntas_hierarquicas):
 def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
     servidor_smtp = st.secrets["email_config"]["servidor_smtp"]
     porta = st.secrets["email_config"]["porta"]
-    remetente = st.secrets["email_config"]["email"]
-    senha = st.secrets["email_config"]["password"]
-
+    user = st.secrets["email_config"]["user"]     # LOGIN SMTP
+    senha = st.secrets["email_config"]["password"]      # SENHA SMTP
+    remetente = st.secrets["email_config"]["email"]     # E-mail autorizado
     # Configurar o email
     msg = MIMEMultipart()
     msg['From'] = remetente
@@ -274,14 +274,18 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
 
     # Enviar o email com depuração detalhada
     try:
-        with smtplib.SMTP(host=servidor_smtp, port=porta, timeout=10) as servidor:
-            servidor.set_debuglevel(1)  # Ativa logs detalhados
-            servidor.starttls()
-            servidor.login(remetente, senha)
-            servidor.send_message(msg)
+        with smtplib.SMTP(servidor_smtp, porta) as server:
+            server.set_debuglevel(1)    # Ativa o log detalhado
+            server.ehlo()
+            server.starttls()   # Inicia o TLS
+            server.login(user, senha)
+            server.send_message(msg)
         return True
+    except smtplib.SMTPAuthenticationError as e:
+        st.error(f"Erro de autenticação: {str(e)}")     # Erro de login (usuario/senha)
+        return False
     except Exception as e:
-        st.error(f"Erro detalhado: {str(e)}")
+        st.error(f"Erro detalhado: {str(e)}")       # Para outros tipos de erro
         return False
 
 def gerar_graficos_radar(perguntas_hierarquicas, respostas):
