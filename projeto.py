@@ -185,7 +185,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
     servidor_smtp = st.secrets["email_config"]["servidor_smtp"]
     porta = st.secrets["email_config"]["porta"]
     user = st.secrets["email_config"]["user"]     # LOGIN SMTP
-    senha = st.secrets["email_config"]["password"]      # SENHA SMTP
+    senha = st.secrets["email_config"]["senha"]      # SENHA SMTP
     remetente = st.secrets["email_config"]["email"]     # E-mail autorizado
     # Configurar o email
     msg = MIMEMultipart()
