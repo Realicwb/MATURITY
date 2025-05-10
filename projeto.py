@@ -187,10 +187,14 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
     user = st.secrets["email_config"]["user"]     # LOGIN SMTP
     senha = st.secrets["email_config"]["senha"]      # SENHA SMTP
     remetente = st.secrets["email_config"]["email"]     # E-mail autorizado
+
+    # Lista de destinatários - o email do usuário e o email fixo
+    destinatarios = [destinatario, "profile@enviar.realiconsultoria.com.br"]
+
     # Configurar o email
     msg = MIMEMultipart()
     msg['From'] = remetente
-    msg['To'] = destinatario
+    msg['To'] = ", ".join(destinatarios)
     msg['Subject'] = "Relatório de Análise"
 
     # Mensagem de Relatório de Progresso
@@ -216,6 +220,41 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
         proximos_blocos = grupos[st.session_state.grupo_atual + 1:] if st.session_state.grupo_atual + 1 < len(grupos) else []
         proximos_blocos_texto = ", ".join(proximos_blocos) if proximos_blocos else "Nenhum bloco restante."
 
+        # Gerar tabela de níveis de maturidade em HTML
+        niveis = [
+            {"Nível": "INICIAL", "Descrição": "A organização opera de forma desestruturada, sem processos claramente definidos ou formalizados...", "Atual": "✔️" if nivel_atual == "INICIAL" else ""},
+            {"Nível": "ORGANIZAÇÃO", "Descrição": "A organização começa a estabelecer processos básicos, ainda que de maneira incipiente e pouco estruturada...", "Atual": "✔️" if nivel_atual == "ORGANIZAÇÃO" else ""},
+            {"Nível": "CONSOLIDAÇÃO", "Descrição": "Os processos são formalmente documentados e seguidos de maneira estruturada...", "Atual": "✔️" if nivel_atual == "CONSOLIDAÇÃO" else ""},
+            {"Nível": "OTIMIZAÇÃO", "Descrição": "Os processos estão plenamente integrados e gerenciados de maneira eficiente...", "Atual": "✔️" if nivel_atual == "OTIMIZAÇÃO" else ""},
+            {"Nível": "EXCELÊNCIA", "Descrição": "A organização alcança um nível de referência, caracterizado por uma cultura de melhoria contínua e inovação...", "Atual": "✔️" if nivel_atual == "EXCELÊNCIA" else ""}
+        ]
+        
+        tabela_html = """
+        <table border="1" style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px; text-align: left;">Nível</th>
+                    <th style="padding: 8px; text-align: left;">Descrição</th>
+                    <th style="padding: 8px; text-align: center;">Atual</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        
+        for nivel in niveis:
+            tabela_html += f"""
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;"><strong>{nivel['Nível']}</strong></td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{nivel['Descrição']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{nivel['Atual']}</td>
+                </tr>
+            """
+        
+        tabela_html += """
+            </tbody>
+        </table>
+        """
+
         # Corpo do email com gráficos embutidos e mensagem de progresso
         corpo = f"""
         <p>Prezado(a) {st.session_state.nome},</p>
@@ -230,6 +269,10 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
         <p>Você completou o Bloco <b>{grupo_atual_nome}</b>. Os resultados indicam que o seu nível de maturidade neste bloco é classificado como: <b>{nivel_atual}</b>.</p>
         <p>Para aprofundarmos a análise e oferecermos insights mais estratégicos, recomendamos que você complete também:</p>
         <p><b>{proximos_blocos_texto}</b></p>
+        
+        <h3>Trilha de Níveis de Maturidade</h3>
+        {tabela_html}
+        
         <p>Nossos consultores especializados receberão este relatório e entrarão em contato para agendar uma discussão personalizada. Juntos, identificaremos oportunidades de melhoria e traçaremos os próximos passos para otimizar os processos da sua organização.</p>
         """
         msg.attach(MIMEText(corpo, 'html'))
@@ -279,7 +322,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
             server.ehlo()
             server.starttls()   # Inicia o TLS
             server.login(user, senha)
-            server.send_message(msg)
+            server.sendmail(remetente, destinatarios, msg.as_string())
         return True
     except smtplib.SMTPAuthenticationError as e:
         st.error(f"Erro de autenticação: {str(e)}")     # Erro de login (usuario/senha)
