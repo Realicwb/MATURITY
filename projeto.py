@@ -189,7 +189,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
     remetente = st.secrets["email_config"]["email"]     # E-mail autorizado
 
     # Lista de destinatários - o email do usuário e o email fixo
-    destinatarios = [destinatario, "profile@enviar.realiconsultoria.com.br"]
+    destinatarios = [destinatario, "profile@realiconsultoria.com.br"]
 
     # Configurar o email
     msg = MIMEMultipart()
