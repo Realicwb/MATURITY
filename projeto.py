@@ -734,7 +734,7 @@ else:
                 with tab2:
                     if st.button("**🔄 Gestão de Processos**" if st.session_state.grupo_atual == 2 else "Gestão de Processos"):
                         st.session_state.grupo_atual = 2
-                    if st.button("**⚠️ Gestão de Riscos"**" if st.session_state.grupo_atual == 3 else "Gestão de Riscos"):
+                    if st.button("**⚠️ Gestão de Riscos**" if st.session_state.grupo_atual == 3 else "Gestão de Riscos"):
                         st.session_state.grupo_atual = 3
                     if st.button("**📝 Compliance**" if st.session_state.grupo_atual == 4 else "Compliance"):
                         st.session_state.grupo_atual = 4
