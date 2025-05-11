@@ -726,35 +726,35 @@ else:
                 
                 
                 with tab1:
-                    if st.button("**Estruturas**" if st.session_state.grupo_atual == 1 else "Estruturas"):
+                    if st.button("**🏛️ Estruturas**" if st.session_state.grupo_atual == 1 else "Estruturas"):
                         st.session_state.grupo_atual = 1
-                    if st.button("**Eficiência de Gestão**" if st.session_state.grupo_atual == 0 else "Eficiência de Gestão"):
+                    if st.button("**📊 Eficiência de Gestão**" if st.session_state.grupo_atual == 0 else "Eficiência de Gestão"):
                         st.session_state.grupo_atual = 0
                 
                 with tab2:
-                    if st.button("**Gestão de Processos**" if st.session_state.grupo_atual == 2 else "Gestão de Processos"):
+                    if st.button("**🔄 Gestão de Processos**" if st.session_state.grupo_atual == 2 else "Gestão de Processos"):
                         st.session_state.grupo_atual = 2
-                    if st.button("**Gestão de Riscos**" if st.session_state.grupo_atual == 3 else "Gestão de Riscos"):
+                    if st.button("**⚠️ Gestão de Riscos"**" if st.session_state.grupo_atual == 3 else "Gestão de Riscos"):
                         st.session_state.grupo_atual = 3
-                    if st.button("**Compliance**" if st.session_state.grupo_atual == 4 else "Compliance"):
+                    if st.button("**📝 Compliance**" if st.session_state.grupo_atual == 4 else "Compliance"):
                         st.session_state.grupo_atual = 4
-                    if st.button("**Canal de Denúncias**" if st.session_state.grupo_atual == 5 else "Canal de Denúncias"):
+                    if st.button("**📢 Canal de Denúncias**" if st.session_state.grupo_atual == 5 else "Canal de Denúncias"):
                         st.session_state.grupo_atual = 5
-                    if st.button("**Governança Corporativa**" if st.session_state.grupo_atual == 6 else "Governança Corporativa"):
+                    if st.button("**🏢 Governança Corporativa"**" if st.session_state.grupo_atual == 6 else "Governança Corporativa"):
                         st.session_state.grupo_atual = 6
                 
                 with tab3:
-                    if st.button("**Recursos Humanos**" if st.session_state.grupo_atual == 7 else "Recursos Humanos"):
+                    if st.button("**👥 Recursos Humanos**" if st.session_state.grupo_atual == 7 else "Recursos Humanos"):
                         st.session_state.grupo_atual = 7
                     if st.button("**Tecnologia da Informação**" if st.session_state.grupo_atual == 8 else "Tecnologia da Informação"):
                         st.session_state.grupo_atual = 8
-                    if st.button("**Compras**" if st.session_state.grupo_atual == 9 else "Compras"):
+                    if st.button("**🛒 Compras**" if st.session_state.grupo_atual == 9 else "Compras"):
                         st.session_state.grupo_atual = 9
-                    if st.button("**Estoques**" if st.session_state.grupo_atual == 10 else "Estoques"):
+                    if st.button("**📦 Estoques**" if st.session_state.grupo_atual == 10 else "Estoques"):
                         st.session_state.grupo_atual = 10
-                    if st.button("**Contabilidade e Controle Financeiro**" if st.session_state.grupo_atual == 11 else "Contabilidade e Controle Financeiro"):
+                    if st.button("**💰 Contabilidade e Controle Financeiro**" if st.session_state.grupo_atual == 11 else "Contabilidade e Controle Financeiro"):
                         st.session_state.grupo_atual = 11
-                    if st.button("**Logística e Distribuição**" if st.session_state.grupo_atual == 12 else "Logística e Distribuição"):
+                    if st.button("**🚚 Logística e Distribuição**" if st.session_state.grupo_atual == 12 else "Logística e Distribuição"):
                         st.session_state.grupo_atual = 12
 
                 # Adicionar texto explicativo abaixo dos botões
@@ -911,12 +911,12 @@ else:
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    if st.button("Voltar"):
+                    if st.button("⬅️ Voltar"):
                         if st.session_state.grupo_atual > 0:
                             st.session_state.grupo_atual -= 1
                             st.session_state.mostrar_graficos = False
                 with col2:
-                    if st.button("Prosseguir"):
+                    if st.button("➡️ Prosseguir"):
                         # Verifica se todas as perguntas obrigatórias do grupo atual foram respondidas
                         obrigatorias_no_grupo = [
                             subitem for subitem in perguntas_hierarquicas[grupo]["subitens"].keys()
@@ -935,9 +935,9 @@ else:
                             st.session_state.mostrar_graficos = False
                             st.success("Você avançou para o próximo grupo.")
                 with col3:
-                    if st.button("Salvar Progresso"):
+                    if st.button("💾 Salvar Progresso"):
                         salvar_respostas(st.session_state.nome, st.session_state.email, st.session_state.respostas)
-                    if st.button("Gerar Gráficos"):
+                    if st.button("📊 Gerar Gráficos"):
                         st.session_state.mostrar_graficos = True
 
                     # Adicionar botão "ENVIAR POR EMAIL" ao lado do botão "Gerar Gráficos"
@@ -946,7 +946,7 @@ else:
                         if fig_original is None or fig_normalizado is None:
                             st.error("Os gráficos não foram gerados corretamente. Verifique os dados de entrada.")
                         else:
-                            if st.button("ENVIAR POR EMAIL"):
+                            if st.button("📧 Enviar por Email"):
                                 excel_data = exportar_questionario(st.session_state.respostas, perguntas_hierarquicas)
                                 if enviar_email(st.session_state.email, excel_data, fig_original, fig_normalizado):
                                     st.success("Relatório enviado com sucesso para o email informado!")
