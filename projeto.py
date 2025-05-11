@@ -740,7 +740,7 @@ else:
                         st.session_state.grupo_atual = 4
                     if st.button("**📢 Canal de Denúncias**" if st.session_state.grupo_atual == 5 else "Canal de Denúncias"):
                         st.session_state.grupo_atual = 5
-                    if st.button("**🏢 Governança Corporativa"**" if st.session_state.grupo_atual == 6 else "Governança Corporativa"):
+                    if st.button("**🏢 Governança Corporativa**" if st.session_state.grupo_atual == 6 else "Governança Corporativa"):
                         st.session_state.grupo_atual = 6
                 
                 with tab3:
