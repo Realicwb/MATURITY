@@ -435,9 +435,9 @@ def exibir_tabela_niveis_maturidade(nivel_atual):
         {
             "Nível": "EXCELÊNCIA",
             "Descrição": (
-                "A organização alcança um nível de referência, caracterizado por uma cultura de melhoria contínua e inovação. Os processos são constantemente "
-                "avaliados e aprimorados com base em análise de dados e benchmarking, garantindo máxima eficiência e alinhamento estratégico. Há uma integração "
-                "plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório. "
+                "A organização alcança um nível de referência, caracterizado por uma cultura de melhoria contínua e inovação. "
+                "Os processos são constantemente avaliados e aprimorados com base em análise de dados e benchmarking, garantindo máxima eficiência e alinhamento estratégico. "
+                "Há uma integração plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório. "
                 "O comprometimento com a excelência e a sustentabilidade impulsiona a organização a atuar como referência no setor."
             )
         }
@@ -726,10 +726,11 @@ else:
                 
                 
                 with tab1:
-                    if st.button("**🏛️ Estruturas**" if st.session_state.grupo_atual == 1 else "🏛️ Estruturas"):
-                        st.session_state.grupo_atual = 1
+                    
                     if st.button("**📊 Eficiência de Gestão**" if st.session_state.grupo_atual == 0 else "📊 Eficiência de Gestão"):
                         st.session_state.grupo_atual = 0
+                    if st.button("**🏛️ Estruturas**" if st.session_state.grupo_atual == 1 else "🏛️ Estruturas"):
+                        st.session_state.grupo_atual = 1    
                 
                 with tab2:
                     if st.button("**🔄 Gestão de Processos**" if st.session_state.grupo_atual == 2 else "🔄 Gestão de Processos"):
@@ -895,12 +896,24 @@ else:
                 blocos = [subitens[i:i + 10] for i in range(0, len(subitens), 10)]
 
                 for idx, bloco in enumerate(blocos):
-                    with st.expander(f"Bloco {idx + 1} de perguntas"):
+                    # Verifica se todas as perguntas do bloco foram respondidas
+                    bloco_preenchido = all(
+                        st.session_state.respostas.get(subitem, "Selecione") != "Selecione"
+                        for subitem, _ in bloco
+                    )
+                    # Destaca o bloco se estiver preenchido
+                    bloco_titulo = f"Bloco {idx + 1} de perguntas"
+                    if bloco_preenchido:
+                        bloco_titulo = f"✅ **:green[{bloco_titulo}]**"
+                    with st.expander(bloco_titulo, expanded=bloco_preenchido):
                         for subitem, subpergunta in bloco:
+                            # Adiciona check se a pergunta foi respondida
+                            respondida = st.session_state.respostas.get(subitem, "Selecione") != "Selecione"
+                            check = " ✔️" if respondida else ""
                             if subitem in perguntas_obrigatorias:
-                                pergunta_label = f"**:red[{subitem} - {subpergunta}]** (OBRIGATÓRIO)"  # Destaca em vermelho
+                                pergunta_label = f"**:red[{subitem} - {subpergunta}]{check}** (OBRIGATÓRIO)"  # Destaca em vermelho
                             else:
-                                pergunta_label = f"{subitem} - {subpergunta}"
+                                pergunta_label = f"{subitem} - {subpergunta}{check}"
 
                             resposta = st.selectbox(
                                 pergunta_label,
@@ -928,7 +941,7 @@ else:
                         )
 
                         if not todas_obrigatorias_preenchidas:
-                            st.error(f"Por favor, responda todas as perguntas obrigatórias deste grupo antes de prosseguir: {', '.join(obrigatorias_no_grupo)}")
+                            st.error(f"Ops...! Para concluir esse grupo você precisa revisar todas as perguntas obrigatórias: {', '.join(obrigatorias_no_grupo)}")
                         else:
                             # Avança para o próximo grupo
                             st.session_state.grupo_atual += 1
