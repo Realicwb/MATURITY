@@ -195,7 +195,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
     msg = MIMEMultipart()
     msg['From'] = remetente
     msg['To'] = ", ".join(destinatarios)
-    msg['Subject'] = "Obrigado por preencher a Matriz de Maturidade!"
+    msg['Subject'] = "Relatório de Análise"
 
     # Mensagem de Relatório de Progresso
     grupo_atual_nome = grupos[st.session_state.grupo_atual]
@@ -258,12 +258,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
         # Corpo do email com gráficos embutidos e mensagem de progresso
         corpo = f"""
         <p>Prezado(a) {st.session_state.nome},</p>
-        <p>Oi, tudo bem?<p>
-        <p>Antes de tudo, queremos agradecer por ter dedicado um tempinho para preencher a nossa Matriz de Maturidade.<p>
-        <p>Essa ferramenta nos ajuda (e muito!) a entender onde estamos e como podemos evoluir ainda mais juntos.<p>
-        <p>Com a sua colaboração, conseguimos identificar pontos fortes, áreas de melhoria e oportunidades para dar aquele próximo passo rumo a uma operação mais eficiente e estratégica.<p>
-        <p>📄 Relatório em mãos!<p>
-        <p>Preparamos um material com os principais insights da análise::</p>
+        <p>Segue abaixo os gráficos de radar gerados pela Matriz de Maturidade:</p>
         <p><b>Gráfico de Radar - Nível Atual:</b></p>
         <img src="cid:fig_original" alt="Gráfico Original" style="width:600px;">
         <p><b>Gráfico de Radar - Normalizado:</b></p>
@@ -278,16 +273,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
         <h3>Trilha de Níveis de Maturidade</h3>
         {tabela_html}
         
-        <p>E agora?<p>
-        <p>Com base nisso, podemos montar juntos um plano de ação que faça sentido para o seu momento e gere resultados concretos.<p>
-        <p>Se quiser trocar ideias, tirar dúvidas ou compartilhar sugestões, é só dar um alô — vamos adorar conversar com você!<p>
-        <p>Abraços,<p>
-        <p>Equipe Reali Consultoria<p>
-        <p>contato@realiconsultoria.com.br<p>
-        <p>41 3017 - 5001 PR<p>
-        <p>11 3141 - 4500 SP<p>
-        <p>47 3025 - 2900 SC<p>
-        <p><a href="https://www.realiconsultoria.com.br">www.realiconsultoria.com.br</a></p>
+        <p>Nossos consultores especializados receberão este relatório e entrarão em contato para agendar uma discussão personalizada. Juntos, identificaremos oportunidades de melhoria e traçaremos os próximos passos para otimizar os processos da sua organização.</p>
         """
         msg.attach(MIMEText(corpo, 'html'))
 
