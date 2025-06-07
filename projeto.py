@@ -570,7 +570,6 @@ def mostrar_nivel_atual_por_grupo(grupo, valor_percentual):
         A organização alcança um nível de maturidade de referência, caracterizado por uma cultura de melhoria contínua e inovação.
         Os processos são constantemente avaliados e aprimorados com base em análise de dados e benchmarking, garantindo máxima eficiência e alinhamento estratégico.
         Há uma integração plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório.
-        O comprometimento com a excelência e a sustentabilidade impulsiona a organização a atuar como referência no setor.
         """)
     
     # Exibir a tabela de níveis de maturidade com o nível atual destacado
@@ -618,7 +617,6 @@ def validar_nivel_maturidade(soma_percentual, total_porcentagem):
         A organização alcança um nível de maturidade de referência, caracterizado por uma cultura de melhoria contínua e inovação.
         Os processos são constantemente avaliados e aprimorados com base em análise de dados e benchmarking, garantindo máxima eficiência e alinhamento estratégico.
         Há uma integração plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório.
-        O comprometimento com a excelência e a sustentabilidade impulsiona a organização a atuar como referência no setor.
         """)
 
 if "formulario_preenchido" not in st.session_state:
@@ -639,8 +637,9 @@ if not st.session_state.formulario_preenchido:
     col1, col2 = st.columns([1, 1])
     with col1:
         st.image("https://raw.githubusercontent.com/DaniloNs-creator/MATURITY/main/logo.png", width=300)
-        st.header("DIAGNÓSTICO DE GESTÃO, GOVERNANÇA E CONTROLES")  # Título ajustado para menor tamanho
-        st.subheader("Por favor, preencha suas informações abaixo:")
+        st.header("DIAGNÓSTICO DE GESTÃO, GOVERNANÇA E CONTROLES")
+        st.subheader("Preencha suas informações para iniciar:")
+
         nome = st.text_input("Nome")
         email = st.text_input("E-mail")
         empresa = st.text_input("Empresa")
@@ -659,59 +658,138 @@ if not st.session_state.formulario_preenchido:
             else:
                 st.error("Por favor, preencha todos os campos antes de prosseguir.")
 
-        # Bloco de apresentação estilizado
+        # Bloco de apresentação profissional com background animado
         st.markdown("""
         <style>
-        .apresentacao-container {
-            background: #f8fafc;
+        /* Fundo animado para o bloco de apresentação */
+        .apresentacao-animada-bg {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(120deg, #f8fafc 60%, #e3e9f7 100%);
             border-radius: 18px;
             border: 1.5px solid #e0e0e0;
-            padding: 28px 24px 18px 24px;
+            padding: 32px 28px 22px 28px;
             margin-top: 18px;
             margin-bottom: 18px;
-            box-shadow: 0 4px 16px rgba(44, 62, 80, 0.08);
+            box-shadow: 0 6px 24px rgba(44, 62, 80, 0.10);
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            z-index: 1;
         }
-        .apresentacao-container h4 {
+        /* Elementos animados no fundo */
+        .apresentacao-animada-bg .bg-shape1,
+        .apresentacao-animada-bg .bg-shape2,
+        .apresentacao-animada-bg .bg-shape3 {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.18;
+            z-index: 0;
+            filter: blur(2px);
+        }
+        .apresentacao-animada-bg .bg-shape1 {
+            width: 180px; height: 180px;
+            background: #1976d2;
+            top: -40px; left: -60px;
+            animation: movebg1 8s infinite alternate;
+        }
+        .apresentacao-animada-bg .bg-shape2 {
+            width: 120px; height: 120px;
+            background: #43a047;
+            bottom: -30px; right: -40px;
+            animation: movebg2 10s infinite alternate;
+        }
+        .apresentacao-animada-bg .bg-shape3 {
+            width: 90px; height: 90px;
+            background: #fbc02d;
+            top: 60px; right: 30px;
+            animation: movebg3 12s infinite alternate;
+        }
+        @keyframes movebg1 {
+            0% { transform: translateY(0) scale(1);}
+            100% { transform: translateY(30px) scale(1.08);}
+        }
+        @keyframes movebg2 {
+            0% { transform: translateX(0) scale(1);}
+            100% { transform: translateX(-30px) scale(1.12);}
+        }
+        @keyframes movebg3 {
+            0% { transform: translateY(0) translateX(0) scale(1);}
+            100% { transform: translateY(-20px) translateX(20px) scale(1.05);}
+        }
+        .apresentacao-animada-bg h4 {
             color: #1a237e;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            z-index: 2;
+            position: relative;
         }
-        .apresentacao-container ul {
+        .apresentacao-animada-bg ul {
             margin-top: 0;
             margin-bottom: 0;
+            padding-left: 18px;
+            z-index: 2;
+            position: relative;
         }
-        .apresentacao-container li {
-            margin-bottom: 4px;
+        .apresentacao-animada-bg li {
+            margin-bottom: 6px;
+            font-size: 1.05rem;
+        }
+        .apresentacao-animada-bg .dimensao {
+            color: #0d47a1;
+            font-weight: 600;
+        }
+        .apresentacao-animada-bg .subitem {
+            color: #374151;
+            font-size: 0.98rem;
+        }
+        .apresentacao-animada-bg p {
+            margin-top: 16px;
+            font-size: 1.08rem;
+            color: #263238;
+            z-index: 2;
+            position: relative;
         }
         </style>
-        <div class="apresentacao-container">
-            <h4>Com esta ferramenta de diagnóstico, você poderá avaliar o nível de maturidade da sua empresa em três dimensões estratégicas:</h4>
+        <div class="apresentacao-animada-bg">
+            <div class="bg-shape1"></div>
+            <div class="bg-shape2"></div>
+            <div class="bg-shape3"></div>
+            <h4>Bem-vindo ao Diagnóstico de Maturidade Empresarial</h4>
+            <p>
+                Esta ferramenta foi desenvolvida para proporcionar uma avaliação estratégica do nível de maturidade da sua empresa em três dimensões essenciais:
+            </p>
             <ul>
-                <li><b>Gestão:</b>
+                <li class="dimensao">Gestão:
                     <ul>
-                        <li>Estrutura organizacional</li>
-                        <li>Eficiência financeira</li>
+                        <li class="subitem">Estrutura organizacional</li>
+                        <li class="subitem">Eficiência financeira</li>
                     </ul>
                 </li>
-                <li><b>Governança:</b>
+                <li class="dimensao">Governança:
                     <ul>
-                        <li>Gestão de processos</li>
-                        <li>Gestão de riscos</li>
-                        <li>Conformidade regulatória (compliance)</li>
-                        <li>Efetividade do canal de denúncias</li>
+                        <li class="subitem">Gestão de processos</li>
+                        <li class="subitem">Gestão de riscos</li>
+                        <li class="subitem">Compliance regulatório</li>
+                        <li class="subitem">Efetividade do canal de denúncias</li>
                     </ul>
                 </li>
-                <li><b>Áreas Operacionais:</b>
+                <li class="dimensao">Áreas Operacionais:
                     <ul>
-                        <li>Recursos Humanos</li>
-                        <li>Tecnologia da Informação</li>
-                        <li>Gestão de compras e estoques</li>
-                        <li>Contabilidade e controles financeiros</li>
-                        <li>Logística e distribuição</li>
+                        <li class="subitem">Recursos Humanos</li>
+                        <li class="subitem">Tecnologia da Informação</li>
+                        <li class="subitem">Gestão de compras e estoques</li>
+                        <li class="subitem">Contabilidade e controles financeiros</li>
+                        <li class="subitem">Logística e distribuição</li>
                     </ul>
                 </li>
             </ul>
-            <p style="margin-top:12px;">
-                A análise integrada desses aspectos permitirá identificar pontos fortes, oportunidades de melhoria e priorizar ações para o crescimento sustentável do negócio.
+            <p>
+                <b>Por que realizar este diagnóstico?</b><br>
+                A análise integrada destes aspectos permite identificar pontos fortes, oportunidades de melhoria e priorizar ações para o crescimento sustentável do seu negócio. 
+                Ao final, você receberá um relatório personalizado com recomendações práticas para elevar a maturidade da sua organização.
+            </p>
+            <p style="margin-top:10px; color:#1565c0;">
+                <b>Confidencialidade garantida:</b> Todas as informações fornecidas serão tratadas com total sigilo e utilizadas exclusivamente para fins de diagnóstico e orientação estratégica.
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -727,7 +805,6 @@ else:
         categorias = []
         valores = []
         valores_normalizados = []
-
         lines = response.text.splitlines()
         data = []
         grupo_atual = None
