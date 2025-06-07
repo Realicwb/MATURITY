@@ -659,28 +659,62 @@ if not st.session_state.formulario_preenchido:
             else:
                 st.error("Por favor, preencha todos os campos antes de prosseguir.")
 
-            # Adicionar explicação em formato de tópicos abaixo do botão "Prosseguir"
-            st.markdown("""
-            Com esta ferramenta de diagnóstico, você poderá avaliar o nível de maturidade da sua empresa em três dimensões estratégicas:
-            - **Gestão**:
-                - Estrutura organizacional
-                - Eficiência financeira
-            - **Governança**:
-                - Gestão de processos
-                - Gestão de riscos
-                - Conformidade regulatória (compliance)
-                - Efetividade do canal de denúncias
-            - **Áreas Operacionais**:
-                - Recursos Humanos
-                - Tecnologia da Informação
-                - Gestão de compras e estoques
-                - Contabilidade e controles financeiros
-                - Logística e distribuição
-            """)
-            st.markdown("""
-            A análise integrada desses aspectos permitirá identificar pontos fortes, oportunidades de melhoria e priorizar ações para o crescimento sustentável do negócio.
-            """)
-            
+        # Bloco de apresentação estilizado
+        st.markdown("""
+        <style>
+        .apresentacao-container {
+            background: #f8fafc;
+            border-radius: 18px;
+            border: 1.5px solid #e0e0e0;
+            padding: 28px 24px 18px 24px;
+            margin-top: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 16px rgba(44, 62, 80, 0.08);
+        }
+        .apresentacao-container h4 {
+            color: #1a237e;
+            margin-bottom: 10px;
+        }
+        .apresentacao-container ul {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        .apresentacao-container li {
+            margin-bottom: 4px;
+        }
+        </style>
+        <div class="apresentacao-container">
+            <h4>Com esta ferramenta de diagnóstico, você poderá avaliar o nível de maturidade da sua empresa em três dimensões estratégicas:</h4>
+            <ul>
+                <li><b>Gestão:</b>
+                    <ul>
+                        <li>Estrutura organizacional</li>
+                        <li>Eficiência financeira</li>
+                    </ul>
+                </li>
+                <li><b>Governança:</b>
+                    <ul>
+                        <li>Gestão de processos</li>
+                        <li>Gestão de riscos</li>
+                        <li>Conformidade regulatória (compliance)</li>
+                        <li>Efetividade do canal de denúncias</li>
+                    </ul>
+                </li>
+                <li><b>Áreas Operacionais:</b>
+                    <ul>
+                        <li>Recursos Humanos</li>
+                        <li>Tecnologia da Informação</li>
+                        <li>Gestão de compras e estoques</li>
+                        <li>Contabilidade e controles financeiros</li>
+                        <li>Logística e distribuição</li>
+                    </ul>
+                </li>
+            </ul>
+            <p style="margin-top:12px;">
+                A análise integrada desses aspectos permitirá identificar pontos fortes, oportunidades de melhoria e priorizar ações para o crescimento sustentável do negócio.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     with col2:
         st.image("https://raw.githubusercontent.com/DaniloNs-creator/MATURITY/main/foto.jpg", use_container_width=True)
 else:
