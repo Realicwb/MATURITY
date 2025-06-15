@@ -1077,17 +1077,14 @@ else:
                         salvar_respostas(st.session_state.nome, st.session_state.email, st.session_state.respostas)
                     if st.button("📊 Gerar Gráficos"):
                         st.session_state.mostrar_graficos = True
-
-                    # Adicionar botão "ENVIAR POR EMAIL" ao lado do botão "Gerar Gráficos"
-                    if st.session_state.mostrar_graficos:
+                        # Gerar gráficos e enviar email juntos
                         fig_original, fig_normalizado = gerar_graficos_radar(perguntas_hierarquicas, st.session_state.respostas)
                         if fig_original is None or fig_normalizado is None:
                             st.error("Os gráficos não foram gerados corretamente. Verifique os dados de entrada.")
                         else:
-                            if st.button("📧 Enviar por Email"):
-                                excel_data = exportar_questionario(st.session_state.respostas, perguntas_hierarquicas)
-                                if enviar_email(st.session_state.email, excel_data, fig_original, fig_normalizado):
-                                    st.success("Relatório enviado com sucesso para o email informado!")
+                            excel_data = exportar_questionario(st.session_state.respostas, perguntas_hierarquicas)
+                            if enviar_email(st.session_state.email, excel_data, fig_original, fig_normalizado):
+                                st.success("Relatório enviado com sucesso para o email informado!")
 
                 if st.session_state.mostrar_graficos:
                     # Mensagem de Relatório de Progresso
@@ -1285,4 +1282,4 @@ try:
 except KeyError as e:
     st.error(f"Erro ao acessar chave inexistente: {e}")
     st.write("Estado atual das respostas:", st.session_state.respostas)
-    st.write("Perguntas hierárquicas:", perguntas_hierarquicas)
+    st.write("Perguntas hierarquicas:", perguntas_hierarquicas)
