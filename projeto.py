@@ -1083,7 +1083,7 @@ else:
                         else:
                             excel_data = exportar_questionario(st.session_state.respostas, perguntas_hierarquicas)
                             if enviar_email(st.session_state.email, excel_data, fig_original, fig_normalizado):
-                                st.success("Relatório enviado com sucesso para o email informado!")
+                                st.success(f"Relatório enviado com sucesso para o email {st.session_state.email}!")
                             st.session_state.mostrar_graficos = True
 
                 if st.session_state.mostrar_graficos:
