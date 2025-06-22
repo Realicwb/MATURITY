@@ -120,13 +120,6 @@ mapeamento_respostas = {
     "Otimizado": 5
 }
 
-# Verificar se o pacote kaleido está instalado
-try:
-    import kaleido
-except ImportError:
-    st.error("O pacote 'kaleido' é necessário para exportar gráficos como imagens. Por favor, instale-o executando: pip install -U kaleido")
-    st.stop()
-
 # Função para salvar respostas no arquivo
 def salvar_respostas(nome, email, respostas):
     try:
@@ -302,7 +295,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
     try:
         if fig_original is not None:
             img_original = BytesIO()
-            fig_original.write_image(img_original, format="png", engine="kaleido")
+            fig_original.write_image(img_original, format="png", engine="orca")
             img_original.seek(0)
             img_original_mime = MIMEBase('image', 'png', filename="grafico_original.png")
             img_original_mime.set_payload(img_original.read())
@@ -315,7 +308,7 @@ def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normaliza
 
         if fig_normalizado is not None:
             img_normalizado = BytesIO()
-            fig_normalizado.write_image(img_normalizado, format="png", engine="kaleido")
+            fig_normalizado.write_image(img_normalizado, format="png", engine="orca")
             img_normalizado.seek(0)
             img_normalizado_mime = MIMEBase('image', 'png', filename="grafico_normalizado.png")
             img_normalizado_mime.set_payload(img_normalizado.read())
