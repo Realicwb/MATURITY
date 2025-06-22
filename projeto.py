@@ -169,11 +169,13 @@ def calcular_porcentagem_grupo(grupo, perguntas_hierarquicas, respostas):
     return valor_percentual
 
 def exportar_questionario(respostas, perguntas_hierarquicas):
-    # Exportar apenas o questionário preenchido
+    # Exportar apenas perguntas respondidas (respostas diferentes de "Selecione")
     linhas = []
     for item, conteudo in perguntas_hierarquicas.items():
         for subitem, subpergunta in conteudo["subitens"].items():
-            linhas.append({"Pergunta": subpergunta, "Resposta": respostas[subitem]})
+            resposta = respostas.get(subitem, "Selecione")
+            if resposta != "Selecione":
+                linhas.append({"Pergunta": subpergunta, "Resposta": resposta})
 
     df_respostas = pd.DataFrame(linhas)
     output = BytesIO()
