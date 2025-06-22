@@ -6,4 +6,3 @@ kaleido>=0.2.1
 requests>=2.0.0
 python-dotenv==1.0.0
 psutil>=5.9.0
-plotly_get_chrome
