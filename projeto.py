@@ -127,6 +127,17 @@ except ImportError:
     st.error("O pacote 'kaleido' é necessário para exportar gráficos como imagens. Por favor, instale-o executando: pip install -U kaleido")
     st.stop()
 
+# Verificar se o Google Chrome está instalado (necessário para Kaleido)
+import shutil
+if shutil.which("chrome") is None and shutil.which("google-chrome") is None and shutil.which("chromium") is None:
+    st.error(
+        "O Kaleido requer o Google Chrome instalado no sistema.\n"
+        "Por favor, instale o Google Chrome manualmente ou execute no terminal:\n\n"
+        "`plotly_get_chrome`\n\n"
+        "Após instalar, reinicie o aplicativo."
+    )
+    st.stop()
+
 # Função para salvar respostas no arquivo
 def salvar_respostas(nome, email, respostas):
     try:
