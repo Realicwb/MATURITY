@@ -4,13 +4,9 @@ import numpy as np
 from io import BytesIO
 import requests
 import plotly.graph_objects as go
-import base64  # Para converter imagens em base64
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-import json  # Para salvar e carregar dados em formato JSON
+import base64
+import json
+import msal
 
 st.set_page_config(page_title="Maturity Reali Consultoria",layout='wide', page_icon="⚖️")
 
@@ -112,7 +108,7 @@ st.markdown("""
 
 # Mapeamento das respostas de texto para valores numéricos
 mapeamento_respostas = {
-    "Selecione": 0,  # Adicionando "Selecione" como valor padrão
+    "Selecione": 0,
     "Não Possui": 1,
     "Insatisfatório": 2,
     "Controlado": 3,
@@ -169,7 +165,6 @@ def calcular_porcentagem_grupo(grupo, perguntas_hierarquicas, respostas):
     return valor_percentual
 
 def exportar_questionario(respostas, perguntas_hierarquicas):
-    # Exportar apenas perguntas respondidas (respostas diferentes de "Selecione")
     linhas = []
     for item, conteudo in perguntas_hierarquicas.items():
         for subitem, subpergunta in conteudo["subitens"].items():
@@ -183,169 +178,218 @@ def exportar_questionario(respostas, perguntas_hierarquicas):
         df_respostas.to_excel(writer, index=False, sheet_name='Questionário')
     return output.getvalue()
 
-def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
-    servidor_smtp = st.secrets["email_config"]["host"]
-    porta = st.secrets["email_config"]["port"]
-    user = st.secrets["email_config"]["username"]
-    senha = st.secrets["email_config"]["password"]
-    remetente = st.secrets["email_config"]["remetente"]
 
-    # Lista de destinatários - o email do usuário e o email fixo
+# ─────────────────────────────────────────────────────────────────────────────
+# ENVIO DE EMAIL VIA MICROSOFT GRAPH API (OAuth2 Client Credentials)
+# Substitui completamente o SMTP com autenticação básica, que foi bloqueado
+# pelo tenant Office 365. A Graph API não requer SMTP AUTH habilitado.
+# ─────────────────────────────────────────────────────────────────────────────
+def _obter_token_graph():
+    """Obtém um access token via MSAL usando Client Credentials Flow."""
+    tenant_id    = st.secrets["email_config"]["oauth2"]["tenant_id"]
+    client_id    = st.secrets["email_config"]["oauth2"]["client_id"]
+    client_secret = st.secrets["email_config"]["oauth2"]["client_secret"]
+
+    authority = f"https://login.microsoftonline.com/{tenant_id}"
+    app = msal.ConfidentialClientApplication(
+        client_id,
+        authority=authority,
+        client_credential=client_secret,
+    )
+    result = app.acquire_token_for_client(
+        scopes=["https://graph.microsoft.com/.default"]
+    )
+    if "access_token" not in result:
+        raise RuntimeError(
+            f"Falha ao obter token OAuth2: {result.get('error_description', result)}"
+        )
+    return result["access_token"]
+
+
+def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
+    """
+    Envia e-mail usando a Microsoft Graph API com OAuth2 (Client Credentials).
+    Não usa SMTP, portanto não é afetado pelo bloqueio de SMTP AUTH no Office 365.
+    """
+    remetente = st.secrets["email_config"]["remetente"]
     destinatarios = [destinatario, "profile@realiconsultoria.com.br"]
 
-    # Configurar o email
-    msg = MIMEMultipart()
-    msg['From'] = remetente
-    msg['To'] = ", ".join(destinatarios)
-    msg['Subject'] = "Obrigado por preencher a Matriz de Maturidade!"
-
-    # Mensagem de Relatório de Progresso
-    grupo_atual_nome = grupos[st.session_state.grupo_atual]
-    respostas_numericas = {k: mapeamento_respostas[v] for k, v in st.session_state.respostas.items()}
-    soma_respostas = sum(respostas_numericas[subitem] for subitem in perguntas_hierarquicas[grupo_atual_nome]["subitens"].keys())
-    num_perguntas = len(perguntas_hierarquicas[grupo_atual_nome]["subitens"])
-    if num_perguntas > 0:
-        valor_percentual = (soma_respostas / (num_perguntas * 5)) * 100
-        nivel_atual = ""
-        if valor_percentual < 26:
-            nivel_atual = "INICIAL"
-        elif valor_percentual < 51:
-            nivel_atual = "ORGANIZAÇÃO"
-        elif valor_percentual < 71:
-            nivel_atual = "CONSOLIDAÇÃO"
-        elif valor_percentual < 90:
-            nivel_atual = "OTIMIZAÇÃO"
-        elif valor_percentual >= 91:
-            nivel_atual = "EXCELÊNCIA"
-
-        # Determinar os próximos blocos
-        proximos_blocos = grupos[st.session_state.grupo_atual + 1:] if st.session_state.grupo_atual + 1 < len(grupos) else []
-        proximos_blocos_texto = ", ".join(proximos_blocos) if proximos_blocos else "Nenhum bloco restante."
-
-        # Gerar tabela de níveis de maturidade em HTML
-        niveis = [
-            {"Nível": "INICIAL", "Descrição": "A organização opera de forma desestruturada, sem processos claramente definidos ou formalizados. As atividades são executadas de maneira reativa, sem padronização ou diretrizes estabelecidas, tornando a execução dependente do conhecimento tácito de indivíduos, em vez de uma abordagem institucionalizada. A ausência de controle efetivo e a inexistência de mecanismos de monitoramento resultam em vulnerabilidades operacionais e elevado risco de não conformidade regulatória.", "Atual": "✔️" if nivel_atual == "INICIAL" else ""},
-            {"Nível": "ORGANIZAÇÃO", "Descrição": "A organização começa a estabelecer processos básicos, ainda que de maneira incipiente e pouco estruturada. Algumas diretrizes são documentadas e há um esforço para replicar práticas em diferentes áreas, embora a consistência na execução continue limitada. As atividades ainda dependem fortemente da experiência individual, e a governança sobre os processos é mínima, resultando em baixa previsibilidade e dificuldade na identificação e mitigação de riscos sistêmicos.", "Atual": "✔️" if nivel_atual == "ORGANIZAÇÃO" else ""},
-            {"Nível": "CONSOLIDAÇÃO", "Descrição": "Os processos são formalmente documentados e seguidos de maneira estruturada. Existe uma clareza maior sobre as responsabilidades e papéis, o que reduz a dependência do conhecimento individual. A implementação de controles internos começa a ganhar robustez, permitindo um maior alinhamento com as diretrizes regulatórias e estratégicas. Indicadores de desempenho são introduzidos, permitindo um acompanhamento inicial da eficácia operacional, embora a cultura de melhoria contínua ainda esteja em desenvolvimento.", "Atual": "✔️" if nivel_atual == "CONSOLIDAÇÃO" else ""},
-            {"Nível": "OTIMIZAÇÃO", "Descrição": "Os processos estão plenamente integrados e gerenciados de maneira eficiente, com monitoramento contínuo e análise sistemática de desempenho. A organização adota mecanismos formais de governança e controle, utilizando métricas para avaliação e aprimoramento das atividades. A mitigação de riscos torna-se mais eficaz, com a implementação de políticas proativas para conformidade regulatória e excelência operacional. O aprendizado organizacional é fomentado, garantindo a adaptação rápida a mudanças no ambiente interno e externo.", "Atual": "✔️" if nivel_atual == "OTIMIZAÇÃO" else ""},
-            {"Nível": "EXCELÊNCIA", "Descrição": "A organização alcança um nível de referência, caracterizado por uma cultura de melhoria contínua e inovação. Os processos são constantemente avaliados e aprimorados com base em análise de dados e benchmarking, garantindo máxima eficiência e alinhamento estratégico. Há uma integração plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório. O comprometimento com a excelência e a sustentabilidade impulsiona a organização a atuar como referência no setor.", "Atual": "✔️" if nivel_atual == "EXCELÊNCIA" else ""}
-        ]
-        
-        tabela_html = """
-        <table border="1" style="width:100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background-color: #f2f2f2;">
-                    <th style="padding: 8px; text-align: left;">Nível</th>
-                    <th style="padding: 8px; text-align: left;">Descrição</th>
-                    <th style="padding: 8px; text-align: center;">Atual</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        
-        for nivel in niveis:
-            tabela_html += f"""
-                <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;"><strong>{nivel['Nível']}</strong></td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">{nivel['Descrição']}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{nivel['Atual']}</td>
-                </tr>
-            """
-        
-        tabela_html += """
-            </tbody>
-        </table>
-        """
-
-        # Corpo do email com gráficos embutidos e mensagem de progresso
-        corpo = f"""
-        <p>Prezado(a) {st.session_state.nome},</p>
-        <p>Oi, tudo bem?<p>
-        <p>Antes de tudo, queremos agradecer por ter dedicado um tempinho para preencher a nossa Matriz de Maturidade.<p>
-        <p>Essa ferramenta nos ajuda (e muito!) a entender onde estamos e como podemos evoluir ainda mais juntos.<p>
-        <p>Com a sua colaboração, conseguimos identificar pontos fortes, áreas de melhoria e oportunidades para dar aquele próximo passo rumo a uma operação mais eficiente e estratégica.<p>
-        <p>📄 Relatório em mãos!<p>
-        <p>Preparamos um material com os principais insights da análise::</p>
-        <p><b>Gráfico de Radar - Nível Atual:</b></p>
-        <img src="cid:fig_original" alt="Gráfico Original" style="width:600px;">
-        <p><b>Gráfico de Radar - Normalizado:</b></p>
-        <img src="cid:fig_normalizado" alt="Gráfico Normalizado" style="width:600px;">
-        <p>Em anexo, você encontrará o questionário preenchido.</p>
-        <hr>
-        <h3>Relatório de Progresso</h3>
-        <p>Você completou o Bloco <b>{grupo_atual_nome}</b>. Os resultados indicam que o seu nível de maturidade neste bloco é classificado como: <b>{nivel_atual}</b>.</p>
-        <p>Para aprofundarmos a análise e oferecermos insights mais estratégicos, recomendamos que você complete também:</p>
-        <p><b>{proximos_blocos_texto}</b></p>
-        
-        <h3>Trilha de Níveis de Maturidade</h3>
-        {tabela_html}
-        
-        <p>E agora?<p>
-        <p>Com base nisso, podemos montar juntos um plano de ação que faça sentido para o seu momento e gere resultados concretos.<p>
-        <p>Se quiser trocar ideias, tirar dúvidas ou compartilhar sugestões, é só dar um alô — vamos adorar conversar com você!<p>
-        <p>Abraços,<p>
-        <p>Equipe Reali Consultoria<p>
-        <p>contato@realiconsultoria.com.br<p>
-        <p>41 3017 - 5001 PR<p>
-        <p>11 3141 - 4500 SP<p>
-        <p>47 3025 - 2900 SC<p>
-        <p><a href="https://www.realiconsultoria.com.br">www.realiconsultoria.com.br</a></p>
-        """
-        msg.attach(MIMEText(corpo, 'html'))
-
-    # Anexar o arquivo do questionário
-    anexo = MIMEBase('application', 'octet-stream')
-    anexo.set_payload(arquivo_questionario)
-    encoders.encode_base64(anexo)
-    anexo.add_header('Content-Disposition', f'attachment; filename="questionario_preenchido.xlsx"')
-    msg.attach(anexo)
-
-    # Adicionar gráficos como imagens embutidas
+    # ── 1. Gerar imagens dos gráficos em base64 ───────────────────────────────
     try:
-        if fig_original is not None:
-            img_original = BytesIO()
-            fig_original.write_image(img_original, format="png", engine="kaleido")
-            img_original.seek(0)
-            img_original_mime = MIMEBase('image', 'png', filename="grafico_original.png")
-            img_original_mime.set_payload(img_original.read())
-            encoders.encode_base64(img_original_mime)
-            img_original_mime.add_header('Content-ID', '<fig_original>')
-            img_original_mime.add_header('Content-Disposition', 'inline', filename="grafico_original.png")
-            msg.attach(img_original_mime)
-        else:
+        if fig_original is None:
             raise ValueError("Gráfico Original não foi gerado.")
+        img_original_buf = BytesIO()
+        fig_original.write_image(img_original_buf, format="png", engine="kaleido")
+        img_original_b64 = base64.b64encode(img_original_buf.getvalue()).decode()
 
-        if fig_normalizado is not None:
-            img_normalizado = BytesIO()
-            fig_normalizado.write_image(img_normalizado, format="png", engine="kaleido")
-            img_normalizado.seek(0)
-            img_normalizado_mime = MIMEBase('image', 'png', filename="grafico_normalizado.png")
-            img_normalizado_mime.set_payload(img_normalizado.read())
-            encoders.encode_base64(img_normalizado_mime)
-            img_normalizado_mime.add_header('Content-ID', '<fig_normalizado>')
-            img_normalizado_mime.add_header('Content-Disposition', 'inline', filename="grafico_normalizado.png")
-            msg.attach(img_normalizado_mime)
-        else:
+        if fig_normalizado is None:
             raise ValueError("Gráfico Normalizado não foi gerado.")
+        img_normalizado_buf = BytesIO()
+        fig_normalizado.write_image(img_normalizado_buf, format="png", engine="kaleido")
+        img_normalizado_b64 = base64.b64encode(img_normalizado_buf.getvalue()).decode()
     except Exception as e:
         st.error(f"Erro ao gerar imagens dos gráficos: {e}")
         return False
 
-    # Enviar o email com depuração detalhada
+    # ── 2. Calcular nível de maturidade para o corpo do email ─────────────────
+    grupo_atual_nome = grupos[st.session_state.grupo_atual] if st.session_state.grupo_atual < len(grupos) else grupos[-1]
+    respostas_numericas = {k: mapeamento_respostas[v] for k, v in st.session_state.respostas.items()}
+    soma_respostas = sum(
+        respostas_numericas.get(subitem, 0)
+        for subitem in perguntas_hierarquicas.get(grupo_atual_nome, {}).get("subitens", {}).keys()
+    )
+    num_perguntas = len(perguntas_hierarquicas.get(grupo_atual_nome, {}).get("subitens", {}))
+    valor_percentual = (soma_respostas / (num_perguntas * 5)) * 100 if num_perguntas > 0 else 0
+
+    if valor_percentual < 26:
+        nivel_atual = "INICIAL"
+    elif valor_percentual < 51:
+        nivel_atual = "ORGANIZAÇÃO"
+    elif valor_percentual < 71:
+        nivel_atual = "CONSOLIDAÇÃO"
+    elif valor_percentual < 90:
+        nivel_atual = "OTIMIZAÇÃO"
+    else:
+        nivel_atual = "EXCELÊNCIA"
+
+    proximos_blocos = grupos[st.session_state.grupo_atual + 1:] if st.session_state.grupo_atual + 1 < len(grupos) else []
+    proximos_blocos_texto = ", ".join(proximos_blocos) if proximos_blocos else "Nenhum bloco restante."
+
+    # ── 3. Tabela HTML de níveis ──────────────────────────────────────────────
+    niveis = [
+        {"Nível": "INICIAL",      "Descrição": "A organização opera de forma desestruturada, sem processos claramente definidos ou formalizados. As atividades são executadas de maneira reativa, sem padronização ou diretrizes estabelecidas, tornando a execução dependente do conhecimento tácito de indivíduos, em vez de uma abordagem institucionalizada. A ausência de controle efetivo e a inexistência de mecanismos de monitoramento resultam em vulnerabilidades operacionais e elevado risco de não conformidade regulatória."},
+        {"Nível": "ORGANIZAÇÃO",  "Descrição": "A organização começa a estabelecer processos básicos, ainda que de maneira incipiente e pouco estruturada. Algumas diretrizes são documentadas e há um esforço para replicar práticas em diferentes áreas, embora a consistência na execução continue limitada. As atividades ainda dependem fortemente da experiência individual, e a governança sobre os processos é mínima, resultando em baixa previsibilidade e dificuldade na identificação e mitigação de riscos sistêmicos."},
+        {"Nível": "CONSOLIDAÇÃO", "Descrição": "Os processos são formalmente documentados e seguidos de maneira estruturada. Existe uma clareza maior sobre as responsabilidades e papéis, o que reduz a dependência do conhecimento individual. A implementação de controles internos começa a ganhar robustez, permitindo um maior alinhamento com as diretrizes regulatórias e estratégicas. Indicadores de desempenho são introduzidos, permitindo um acompanhamento inicial da eficácia operacional, embora a cultura de melhoria contínua ainda esteja em desenvolvimento."},
+        {"Nível": "OTIMIZAÇÃO",   "Descrição": "Os processos estão plenamente integrados e gerenciados de maneira eficiente, com monitoramento contínuo e análise sistemática de desempenho. A organização adota mecanismos formais de governança e controle, utilizando métricas para avaliação e aprimoramento das atividades. A mitigação de riscos torna-se mais eficaz, com a implementação de políticas proativas para conformidade regulatória e excelência operacional. O aprendizado organizacional é fomentado, garantindo a adaptação rápida a mudanças no ambiente interno e externo."},
+        {"Nível": "EXCELÊNCIA",   "Descrição": "A organização alcança um nível de referência, caracterizado por uma cultura de melhoria contínua e inovação. Os processos são constantemente avaliados e aprimorados com base em análise de dados e benchmarking, garantindo máxima eficiência e alinhamento estratégico. Há uma integração plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório. O comprometimento com a excelência e a sustentabilidade impulsiona a organização a atuar como referência no setor."},
+    ]
+    tabela_html = """
+    <table border="1" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background-color:#f2f2f2;">
+          <th style="padding:8px;text-align:left;">Nível</th>
+          <th style="padding:8px;text-align:left;">Descrição</th>
+          <th style="padding:8px;text-align:center;">Atual</th>
+        </tr>
+      </thead><tbody>
+    """
+    for n in niveis:
+        atual = "✔️" if n["Nível"] == nivel_atual else ""
+        tabela_html += f"""
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>{n['Nível']}</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">{n['Descrição']}</td>
+          <td style="padding:8px;border:1px solid #ddd;text-align:center;">{atual}</td>
+        </tr>"""
+    tabela_html += "</tbody></table>"
+
+    # ── 4. Corpo HTML do email (imagens inline via contentId) ─────────────────
+    corpo_html = f"""
+    <p>Prezado(a) {st.session_state.nome},</p>
+    <p>Oi, tudo bem?</p>
+    <p>Antes de tudo, queremos agradecer por ter dedicado um tempinho para preencher a nossa Matriz de Maturidade.</p>
+    <p>Essa ferramenta nos ajuda (e muito!) a entender onde estamos e como podemos evoluir ainda mais juntos.</p>
+    <p>Com a sua colaboração, conseguimos identificar pontos fortes, áreas de melhoria e oportunidades para dar aquele próximo passo rumo a uma operação mais eficiente e estratégica.</p>
+    <p>📄 <strong>Relatório em mãos!</strong></p>
+    <p>Preparamos um material com os principais insights da análise:</p>
+    <p><b>Gráfico de Radar - Nível Atual:</b></p>
+    <img src="cid:fig_original" alt="Gráfico Original" style="width:600px;">
+    <p><b>Gráfico de Radar - Normalizado:</b></p>
+    <img src="cid:fig_normalizado" alt="Gráfico Normalizado" style="width:600px;">
+    <p>Em anexo, você encontrará o questionário preenchido.</p>
+    <hr>
+    <h3>Relatório de Progresso</h3>
+    <p>Você completou o Bloco <b>{grupo_atual_nome}</b>. Os resultados indicam que o seu nível de maturidade neste bloco é classificado como: <b>{nivel_atual}</b>.</p>
+    <p>Para aprofundarmos a análise e oferecermos insights mais estratégicos, recomendamos que você complete também:</p>
+    <p><b>{proximos_blocos_texto}</b></p>
+    <h3>Trilha de Níveis de Maturidade</h3>
+    {tabela_html}
+    <p>E agora?</p>
+    <p>Com base nisso, podemos montar juntos um plano de ação que faça sentido para o seu momento e gere resultados concretos.</p>
+    <p>Se quiser trocar ideias, tirar dúvidas ou compartilhar sugestões, é só dar um alô — vamos adorar conversar com você!</p>
+    <p>Abraços,</p>
+    <p>Equipe Reali Consultoria</p>
+    <p>contato@realiconsultoria.com.br</p>
+    <p>41 3017-5001 PR | 11 3141-4500 SP | 47 3025-2900 SC</p>
+    <p><a href="https://www.realiconsultoria.com.br">www.realiconsultoria.com.br</a></p>
+    """
+
+    # ── 5. Montar payload Graph API ───────────────────────────────────────────
+    excel_b64 = base64.b64encode(arquivo_questionario).decode()
+
+    # A Graph API suporta inline images via attachments com isInline=True e contentId
+    attachments = [
+        # Arquivo Excel
+        {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            "name": "questionario_preenchido.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "contentBytes": excel_b64,
+            "isInline": False,
+        },
+        # Gráfico Original (inline)
+        {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            "name": "grafico_original.png",
+            "contentType": "image/png",
+            "contentBytes": img_original_b64,
+            "isInline": True,
+            "contentId": "fig_original",
+        },
+        # Gráfico Normalizado (inline)
+        {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            "name": "grafico_normalizado.png",
+            "contentType": "image/png",
+            "contentBytes": img_normalizado_b64,
+            "isInline": True,
+            "contentId": "fig_normalizado",
+        },
+    ]
+
+    to_recipients = [
+        {"emailAddress": {"address": addr}} for addr in destinatarios
+    ]
+
+    payload = {
+        "message": {
+            "subject": "Obrigado por preencher a Matriz de Maturidade!",
+            "body": {
+                "contentType": "HTML",
+                "content": corpo_html,
+            },
+            "toRecipients": to_recipients,
+            "attachments": attachments,
+        },
+        "saveToSentItems": "true",
+    }
+
+    # ── 6. Obter token e chamar a Graph API ───────────────────────────────────
     try:
-        with smtplib.SMTP(servidor_smtp, porta) as server:
-            server.set_debuglevel(1)    # Ativa o log detalhado
-            server.ehlo()
-            server.starttls()   # Inicia o TLS
-            server.login(user, senha)
-            server.sendmail(remetente, destinatarios, msg.as_string())
-        return True
-    except smtplib.SMTPAuthenticationError as e:
-        st.error(f"Erro de autenticação: {str(e)}")     # Erro de login (usuario/senha)
-        return False
+        token = _obter_token_graph()
     except Exception as e:
-        st.error(f"Erro detalhado: {str(e)}")       # Para outros tipos de erro
+        st.error(f"Erro ao obter token OAuth2: {e}")
         return False
+
+    # Endpoint: envia como o usuário remetente (Mail.Send application permission)
+    endpoint = f"https://graph.microsoft.com/v1.0/users/{remetente}/sendMail"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
+        if resp.status_code == 202:
+            return True
+        else:
+            st.error(f"Erro ao enviar email via Graph API: {resp.status_code} – {resp.text}")
+            return False
+    except Exception as e:
+        st.error(f"Erro na chamada à Graph API: {e}")
+        return False
+# ─────────────────────────────────────────────────────────────────────────────
+
 
 def gerar_graficos_radar(perguntas_hierarquicas, respostas):
     respostas_numericas = {k: mapeamento_respostas[v] for k, v in respostas.items()}
@@ -378,11 +422,7 @@ def gerar_graficos_radar(perguntas_hierarquicas, respostas):
         name='Gráfico Original'
     ))
     fig_original.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100]
-            )),
+        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
         showlegend=False,
         title="Gráfico de Radar - Nível Atual"
     )
@@ -397,11 +437,7 @@ def gerar_graficos_radar(perguntas_hierarquicas, respostas):
         name='Gráfico Normalizado'
     ))
     fig_normalizado.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100]
-            )),
+        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
         showlegend=False,
         title="Gráfico de Radar - Normalizado"
     )
@@ -458,13 +494,11 @@ def exibir_tabela_niveis_maturidade(nivel_atual):
             )
         }
     ]
-    # Adicionar uma coluna para destacar o nível atual
     for nivel in niveis:
         nivel["Atual"] = "✔️" if nivel["Nível"] == nivel_atual else ""
 
-    # Ajustar estilo da tabela para a coluna "Nível"
     df_niveis = pd.DataFrame(niveis)
-    df_niveis = df_niveis.reset_index(drop=True)  # Remove a coluna de índice padrão (0, 1, 2, 3, 4)
+    df_niveis = df_niveis.reset_index(drop=True)
     styled_table = df_niveis.style.set_properties(
         **{'font-size': '10px', 'white-space': 'nowrap'}, subset=['Nível']
     )
@@ -522,7 +556,6 @@ def mostrar_nivel_maturidade(total_porcentagem):
         O comprometimento com a excelência e a sustentabilidade impulsiona a organização a atuar como referência no setor.
         """)
     
-    # Exibir a tabela de níveis de maturidade com o nível atual destacado
     exibir_tabela_niveis_maturidade(nivel_atual)
 
 def mostrar_nivel_atual_por_grupo(grupo, valor_percentual):
@@ -574,7 +607,6 @@ def mostrar_nivel_atual_por_grupo(grupo, valor_percentual):
         Há uma integração plena entre tecnologia, governança e gestão de riscos, promovendo uma operação resiliente e altamente adaptável às mudanças do mercado e do cenário regulatório.
         """)
     
-    # Exibir a tabela de níveis de maturidade com o nível atual destacado
     exibir_tabela_niveis_maturidade(nivel_atual)
 
 def validar_nivel_maturidade(soma_percentual, total_porcentagem):
@@ -630,16 +662,12 @@ if "respostas" not in st.session_state:
 if "mostrar_graficos" not in st.session_state:
     st.session_state.mostrar_graficos = False
 
-# Inicializar as variáveis fig_original e fig_normalizado para evitar erros
 fig_original = None
 fig_normalizado = None
 
-# ─── URL DA NOVA LOGO ────────────────────────────────────────────────────────
 LOGO_URL = "https://raw.githubusercontent.com/DaniloNs-creator/MATURITY/main/R%20Reali%20azul%201.png"
-# ─────────────────────────────────────────────────────────────────────────────
 
 if not st.session_state.formulario_preenchido:
-    # Adicionando a imagem no início com tamanho reduzido
     col1, col2 = st.columns([1, 1])
     with col1:
         st.image(LOGO_URL, width=300)
@@ -658,16 +686,13 @@ if not st.session_state.formulario_preenchido:
                 st.session_state.telefone = telefone
                 st.session_state.formulario_preenchido = True
 
-                # Carregar respostas salvas, se existirem
                 st.session_state.respostas = carregar_respostas(email)
                 st.success("Informações preenchidas com sucesso! Você pode prosseguir para o questionário.")
             else:
                 st.error("Por favor, preencha todos os campos antes de prosseguir.")
 
-        # Bloco de apresentação profissional com background animado
         st.markdown("""
         <style>
-        /* Fundo animado para o bloco de apresentação */
         .apresentacao-animada-bg {
             position: relative;
             overflow: hidden;
@@ -681,7 +706,6 @@ if not st.session_state.formulario_preenchido:
             font-family: 'Segoe UI', 'Arial', sans-serif;
             z-index: 1;
         }
-        /* Elementos animados no fundo */
         .apresentacao-animada-bg .bg-shape1,
         .apresentacao-animada-bg .bg-shape2,
         .apresentacao-animada-bg .bg-shape3 {
@@ -807,7 +831,6 @@ else:
         response = requests.get(url_arquivo)
         response.raise_for_status()
 
-        # Inicializar as variáveis para evitar erros
         categorias = []
         valores = []
         valores_normalizados = []
@@ -845,11 +868,8 @@ else:
 
             grupos = list(perguntas_hierarquicas.keys())
             
-            # Criando navegação por grupos
             with st.sidebar:
-                # ── NOVA LOGO NA SIDEBAR ──────────────────────────────────────
                 st.image(LOGO_URL)
-                # ─────────────────────────────────────────────────────────────
                 st.title("Navegação por Grupos")
                 
                 tab1, tab2, tab3 = st.tabs([ "GESTÃO", "GOVERNANÇA", "SETORES"])
@@ -886,7 +906,6 @@ else:
                     if st.button("**🚚 Logística e Distribuição**" if st.session_state.grupo_atual == 12 else "🚚 Logística e Distribuição"):
                         st.session_state.grupo_atual = 12
 
-                # Adicionar texto explicativo abaixo dos botões
                 st.write("""
                 Para garantir uma análise mais eficiente e resultados mais assertivos, recomendamos iniciar o diagnóstico pela aba 'Gestão', respondendo aos dois blocos de questões relacionados. 
                 Em seguida, prossiga para 'Governança' e, por fim, 'Setores'. 
@@ -896,7 +915,6 @@ else:
 
             grupo_atual = st.session_state.grupo_atual
 
-            # Textos introdutórios para cada grupo
             TEXTO_GRUPO1 = """
             O preenchimento de uma Matriz de Maturidade de Gestão Financeira é essencial para avaliar a eficiência dos processos financeiros, identificar lacunas e estruturar um plano de melhoria contínua. Ela permite medir o nível de controle sobre orçamento, fluxo de caixa, investimentos e riscos, fornecendo uma visão clara da saúde financeira da empresa. Além disso, facilita a tomada de decisões estratégicas, ajudando a mitigar riscos, otimizar recursos e garantir a sustentabilidade do negócio a longo prazo. Empresas que utilizam essa matriz conseguem se adaptar melhor a mudanças e aprimorar sua competitividade.
             """
@@ -937,7 +955,6 @@ else:
             Esta seção avalia a transparência e conformidade da contabilidade empresarial. Um controle rigoroso das demonstrações financeiras assegura a correta apuração de resultados, garantindo confiança e credibilidade junto a investidores e órgãos reguladores.
             """
 
-            # Lista de perguntas obrigatórias
             perguntas_obrigatorias = [
                 "1.02", "1.06", "1.42", "1.03", "1.13", "1.14", "1.30", "1.12", "1.19", "1.25", "1.41", "1.43", "1.27", "1.35", "1.45", "1.20",
                 "2.10", "2.01", "2.16", "2.23", "2.05", "2.08", "2.25", "2.29", "2.21", "2.22",
@@ -954,7 +971,6 @@ else:
                 "13.01", "13.02", "13.03", "13.04", "13.05", "13.06", "13.07", "13.08","13.09","13.10"
             ]
 
-            # Grupos obrigatórios (4, 6, 7, 8, 9, 10, 11, 12, 13)
             grupos_obrigatorios = [
                 "4 - Gestão de Riscos",
                 "6 - Governança Corporativa",
@@ -970,7 +986,6 @@ else:
             if grupo_atual < len(grupos):
                 grupo = grupos[grupo_atual]
 
-                # Exibe o texto introdutório correspondente ao grupo atual
                 if grupo.startswith("1 -"):
                     st.markdown(TEXTO_GRUPO1)
                 elif grupo.startswith("2 -"):
@@ -1000,7 +1015,6 @@ else:
 
                 st.write(f"### {perguntas_hierarquicas[grupo]['titulo']}")
                 
-                # Verifica se todas as perguntas obrigatórias foram respondidas
                 todas_obrigatorias_preenchidas = True
                 obrigatorias_no_grupo = []
                 
@@ -1010,36 +1024,31 @@ else:
                         if st.session_state.respostas.get(subitem, "Selecione") == "Selecione":
                             todas_obrigatorias_preenchidas = False
 
-                # Adicionando verificações para evitar erros ao acessar chaves inexistentes
                 for subitem, subpergunta in perguntas_hierarquicas[grupo]["subitens"].items():
                     if subitem not in st.session_state.respostas:
-                        st.session_state.respostas[subitem] = "Selecione"  # Inicializa com "Selecione"
+                        st.session_state.respostas[subitem] = "Selecione"
 
                 for subitem, subpergunta in perguntas_hierarquicas[grupo]["subitens"].items():
                     if subitem not in st.session_state.respostas:
-                        st.session_state.respostas[subitem] = "Selecione"  # Inicializa com "Selecione"
+                        st.session_state.respostas[subitem] = "Selecione"
 
-                # Dividindo as perguntas em blocos de 10
                 subitens = list(perguntas_hierarquicas[grupo]["subitens"].items())
                 blocos = [subitens[i:i + 10] for i in range(0, len(subitens), 10)]
 
                 for idx, bloco in enumerate(blocos):
-                    # Verifica se todas as perguntas do bloco foram respondidas
                     bloco_preenchido = all(
                         st.session_state.respostas.get(subitem, "Selecione") != "Selecione"
                         for subitem, _ in bloco
                     )
-                    # Destaca o bloco se estiver preenchido
                     bloco_titulo = f"Bloco {idx + 1} de perguntas"
                     if bloco_preenchido:
                         bloco_titulo = f"✅ **:green[{bloco_titulo}]**"
                     with st.expander(bloco_titulo, expanded=bloco_preenchido):
                         for subitem, subpergunta in bloco:
-                            # Adiciona check se a pergunta foi respondida
                             respondida = st.session_state.respostas.get(subitem, "Selecione") != "Selecione"
                             check = " ✔️" if respondida else ""
                             if subitem in perguntas_obrigatorias:
-                                pergunta_label = f"**:red[{subitem} - {subpergunta}]{check}** (OBRIGATÓRIO)"  # Destaca em vermelho
+                                pergunta_label = f"**:red[{subitem} - {subpergunta}]{check}** (OBRIGATÓRIO)"
                             else:
                                 pergunta_label = f"{subitem} - {subpergunta}{check}"
 
@@ -1058,7 +1067,6 @@ else:
                             st.session_state.mostrar_graficos = False
                 with col2:
                     if st.button("➡️ Prosseguir"):
-                        # Verifica se todas as perguntas obrigatórias do grupo atual foram respondidas
                         obrigatorias_no_grupo = [
                             subitem for subitem in perguntas_hierarquicas[grupo]["subitens"].keys()
                             if subitem in perguntas_obrigatorias
@@ -1071,14 +1079,12 @@ else:
                         if not todas_obrigatorias_preenchidas:
                             st.error(f"Ops...! Para concluir esse grupo você precisa revisar todas as perguntas obrigatórias: {', '.join(obrigatorias_no_grupo)}")
                         else:
-                            # Avança para o próximo grupo
                             st.session_state.grupo_atual += 1
                             st.session_state.mostrar_graficos = False
                             st.success("Você avançou para o próximo grupo.")
                 with col3:
                     if st.button("💾 Salvar Progresso"):
                         salvar_respostas(st.session_state.nome, st.session_state.email, st.session_state.respostas)
-                    # Substituir os dois botões por um só
                     if st.button("📊 Gerar Gráficos e Enviar por Email"):
                         fig_original, fig_normalizado = gerar_graficos_radar(perguntas_hierarquicas, st.session_state.respostas)
                         if fig_original is None or fig_normalizado is None:
@@ -1090,11 +1096,13 @@ else:
                             st.session_state.mostrar_graficos = True
 
                 if st.session_state.mostrar_graficos:
-                    # Mensagem de Relatório de Progresso
-                    grupo_atual_nome = grupos[st.session_state.grupo_atual]
+                    grupo_atual_nome = grupos[st.session_state.grupo_atual] if st.session_state.grupo_atual < len(grupos) else grupos[-1]
                     respostas_numericas = {k: mapeamento_respostas[v] for k, v in st.session_state.respostas.items()}
-                    soma_respostas = sum(respostas_numericas[subitem] for subitem in perguntas_hierarquicas[grupo_atual_nome]["subitens"].keys())
-                    num_perguntas = len(perguntas_hierarquicas[grupo_atual_nome]["subitens"])
+                    soma_respostas = sum(
+                        respostas_numericas.get(subitem, 0)
+                        for subitem in perguntas_hierarquicas.get(grupo_atual_nome, {}).get("subitens", {}).keys()
+                    )
+                    num_perguntas = len(perguntas_hierarquicas.get(grupo_atual_nome, {}).get("subitens", {}))
                     if num_perguntas > 0:
                         valor_percentual = (soma_respostas / (num_perguntas * 5)) * 100
                         nivel_atual = ""
@@ -1109,11 +1117,9 @@ else:
                         elif valor_percentual >= 91:
                             nivel_atual = "EXCELÊNCIA"
 
-                        # Determinar os próximos blocos
                         proximos_blocos = grupos[st.session_state.grupo_atual + 1:] if st.session_state.grupo_atual + 1 < len(grupos) else []
                         proximos_blocos_texto = ", ".join(proximos_blocos) if proximos_blocos else "Nenhum bloco restante."
 
-                        # Exibir a mensagem
                         st.markdown(f"""
                         ### Relatório de Progresso
 
@@ -1126,7 +1132,6 @@ else:
                         Nossos consultores especializados receberão este relatório e entrarão em contato para agendar uma discussão personalizada. Juntos, identificaremos oportunidades de melhoria e traçaremos os próximos passos para otimizar os processos da sua organização.
                         """)
 
-                    # Gerar gráficos
                     fig_original, fig_normalizado = gerar_graficos_radar(perguntas_hierarquicas, st.session_state.respostas)
                     if fig_original and fig_normalizado:
                         col1, col2 = st.columns(2)
@@ -1135,12 +1140,10 @@ else:
                         with col2:
                             st.plotly_chart(fig_normalizado, use_container_width=True)
 
-                        # Calcular e exibir o nível atual apenas para o grupo atual
                         mostrar_nivel_atual_por_grupo(grupo_atual_nome, valor_percentual)
             else:
                 st.write("### Todas as perguntas foram respondidas!")
                 if st.button("Gerar Gráfico Final"):
-                    # Verifica se todas as perguntas obrigatórias foram respondidas
                     todas_obrigatorias_respondidas = True
                     obrigatorias_nao_respondidas = []
                     
@@ -1149,7 +1152,6 @@ else:
                             todas_obrigatorias_respondidas = False
                             obrigatorias_nao_respondidas.append(pergunta)
                     
-                    # Verifica se todos os grupos obrigatórios foram completamente respondidos
                     grupos_obrigatorios_completos = True
                     grupos_incompletos = []
                     
@@ -1169,7 +1171,6 @@ else:
                             mensagem_erro.append(f"Grupos obrigatórios incompletos: {', '.join(set(grupos_incompletos))}")
                         st.error(" | ".join(mensagem_erro))
                     else:
-                        # Adicionando logs para depuração
                         try:
                             respostas = {k: mapeamento_respostas.get(v, 0) for k, v in st.session_state.respostas.items()}
                             categorias = []
@@ -1199,11 +1200,7 @@ else:
                                         name='Gráfico Original'
                                     ))
                                     fig_original.update_layout(
-                                        polar=dict(
-                                            radialaxis=dict(
-                                                visible=True,
-                                                range=[0, 100]
-                                            )),
+                                        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
                                         showlegend=False
                                     )
                                     valores_normalizados_fechado = valores_normalizados + valores_normalizados[:1]
@@ -1215,11 +1212,7 @@ else:
                                         name='Gráfico Normalizado'
                                     ))
                                     fig_normalizado.update_layout(
-                                        polar=dict(
-                                            radialaxis=dict(
-                                                visible=True,
-                                                range=[0, 100]
-                                            )),
+                                        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
                                         showlegend=False
                                     )
                                     col1, col2 = st.columns(2)
@@ -1247,7 +1240,6 @@ else:
                                         df_grafico_normalizado = pd.DataFrame({'Categoria': categorias, 'Porcentagem Normalizada': valores_normalizados})
                                         st.dataframe(df_grafico_normalizado)
                                     
-                                    # Mostrar nível de maturidade completo
                                     mostrar_nivel_maturidade(total_porcentagem)
                                     
                                     excel_data = exportar_questionario(st.session_state.respostas, perguntas_hierarquicas)
@@ -1265,21 +1257,17 @@ else:
     except Exception as e:
         st.error(f"Ocorreu um erro ao carregar o arquivo: {e}")
 
-# Garantir que perguntas_hierarquicas esteja definido
 if 'perguntas_hierarquicas' not in locals():
     perguntas_hierarquicas = {}
 
-# Garantir que perguntas_obrigatorias esteja definido
 if 'perguntas_obrigatorias' not in locals():
     perguntas_obrigatorias = []
 
-# Garantir que todas as perguntas obrigatórias sejam inicializadas no dicionário de respostas
 for grupo, conteudo in perguntas_hierarquicas.items():
     for subitem in conteudo["subitens"].keys():
         if subitem not in st.session_state.respostas:
-            st.session_state.respostas[subitem] = "Selecione"  # Inicializa com "Selecione"
+            st.session_state.respostas[subitem] = "Selecione"
 
-# Adicionando verificações para evitar erros ao acessar chaves inexistentes
 try:
     respostas = {k: mapeamento_respostas.get(v, 0) for k, v in st.session_state.respostas.items()}
 except KeyError as e:
