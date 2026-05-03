@@ -184,11 +184,11 @@ def exportar_questionario(respostas, perguntas_hierarquicas):
     return output.getvalue()
 
 def enviar_email(destinatario, arquivo_questionario, fig_original, fig_normalizado):
-    servidor_smtp = st.secrets["email_config"]["servidor_smtp"]
-    porta = st.secrets["email_config"]["porta"]
-    user = st.secrets["email_config"]["user"]     # LOGIN SMTP
-    senha = st.secrets["email_config"]["senha"]      # SENHA SMTP
-    remetente = st.secrets["email_config"]["email"]     # E-mail autorizado
+    servidor_smtp = st.secrets["email_config"]["host"]
+    porta = st.secrets["email_config"]["port"]
+    user = st.secrets["email_config"]["username"]
+    senha = st.secrets["email_config"]["password"]
+    remetente = st.secrets["email_config"]["remetente"]
 
     # Lista de destinatários - o email do usuário e o email fixo
     destinatarios = [destinatario, "profile@realiconsultoria.com.br"]
