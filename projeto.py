@@ -634,11 +634,15 @@ if "mostrar_graficos" not in st.session_state:
 fig_original = None
 fig_normalizado = None
 
+# ─── URL DA NOVA LOGO ────────────────────────────────────────────────────────
+LOGO_URL = "https://raw.githubusercontent.com/DaniloNs-creator/MATURITY/main/R%20Reali%20azul%201.png"
+# ─────────────────────────────────────────────────────────────────────────────
+
 if not st.session_state.formulario_preenchido:
     # Adicionando a imagem no início com tamanho reduzido
     col1, col2 = st.columns([1, 1])
     with col1:
-        st.image("https://raw.githubusercontent.com/DaniloNs-creator/MATURITY/main/logo.png", width=300)
+        st.image(LOGO_URL, width=300)
         st.header("DIAGNÓSTICO DE GESTÃO, GOVERNANÇA E CONTROLES")
         st.subheader("Preencha suas informações para iniciar:")
 
@@ -843,17 +847,14 @@ else:
             
             # Criando navegação por grupos
             with st.sidebar:
-               
-                # Corrigindo o caminho da imagem para o URL bruto do GitHub
-                st.image("https://raw.githubusercontent.com/DaniloNs-creator/MATURITY/main/logo.png")
+                # ── NOVA LOGO NA SIDEBAR ──────────────────────────────────────
+                st.image(LOGO_URL)
+                # ─────────────────────────────────────────────────────────────
                 st.title("Navegação por Grupos")
                 
                 tab1, tab2, tab3 = st.tabs([ "GESTÃO", "GOVERNANÇA", "SETORES"])
                 
-                
-                
                 with tab1:
-                    
                     if st.button("**📊 Eficiência de Gestão**" if st.session_state.grupo_atual == 0 else "📊 Eficiência de Gestão"):
                         st.session_state.grupo_atual = 0
                     if st.button("**🏛️ Estruturas**" if st.session_state.grupo_atual == 1 else "🏛️ Estruturas"):
